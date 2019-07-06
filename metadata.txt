@@ -9,7 +9,7 @@ version=1.0
 #################### Authors
 author=Pep Vallory, Carlos Lopez Quintanilla
 email=carlos.lopez@psig.es
-homepage=psig.es
+homepage=www.psig.es
 
 #################### Abstract
 about=Plugin to export to gml according to indications of the headquarters of the Cadastre of Spain in GML INSPIRE CP format v3 and v4 with the objective of validating a parcel in the Virtual Office of the Cadastre.
