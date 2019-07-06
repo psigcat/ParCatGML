@@ -4,7 +4,7 @@ name=ParCatGML
 #################### Description
 description=Creation of GML file to validate cadastral parcel. Creación de fichero GML para validar parcela catastral
 qgisMinimumVersion=3.0
-version=1.0
+version=1.1
 
 #################### Authors
 author=Pep Vallory, Carlos Lopez Quintanilla
