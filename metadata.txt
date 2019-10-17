@@ -2,17 +2,19 @@
 name=ParCatGML
 
 #################### Description
-description=Creation of GML file to validate cadastral parcel. Creación de fichero GML para validar parcela catastral 
+description=Creation of GML file to validate cadastral parcel. 
+(ES) Creación de fichero GML para validar parcela catastral 
 qgisMinimumVersion=3.0
 version=1.1
 
 #################### Authors
 author=Pep Vallory, Carlos Lopez Quintanilla
 email=carlos.lopez@psig.es
-homepage=http://www.psig.es
+homepage=https://github.com/psigcat
 
 #################### Abstract
-about=Plugin to export to gml according to indications of the headquarters of the Cadastre of Spain in GML INSPIRE CP format v3 and v4 with the objective of validating a parcel in the Virtual Office of the Cadastre. This plugin only work to validate parcels in Spain's Cadastral. Plugin para exportar a gml según indicaciones de la sede del Catastro de España en formato GML INSPIRE CP v3 y v4 con el objetivo de validar una parcela en la Oficina Virtual del Catastro. Primero selecciona una parcela y en segundo lugar ejecuta el plugin para utlizarlo.
+about=Plugin to export to gml according to indications of the headquarters of the Cadastre of Spain in GML INSPIRE CP format v3 and v4 with the objective of validating a parcel in the Virtual Office of the Cadastre. This plugin only work to validate parcels in Spain's Cadastral. 
+(ES) Plugin para exportar a gml según indicaciones de la sede del Catastro de España en formato GML INSPIRE CP v3 y v4 con el objetivo de validar una parcela en la Oficina Virtual del Catastro. Primero selecciona una parcela y en segundo lugar ejecuta el plugin para utlizarlo.
 
 #################### Tracker
 tracker=https://github.com/psigcat/ParCatGML/issues
