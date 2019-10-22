@@ -9,7 +9,7 @@ version=1.3
 #################### Authors
 author=Pep Vallory, Carlos Lopez Quintanilla
 email=carlos.lopez@psig.es
-homepage=https://github.com/psigcat
+homepage=https://github.com/psigcat/ParCatGML
 
 #################### Abstract
 about=Plugin to export to gml according to indications of the headquarters of the Cadastre of Spain in GML INSPIRE CP format v3 and v4 with the objective of validating a parcel in the Virtual Office of the Cadastre. This plugin only work to validate parcels in Spain's Cadastral. (ES) Plugin para exportar a gml según indicaciones de la sede del Catastro de España en formato GML INSPIRE CP v3 y v4 con el objetivo de validar una parcela en la Oficina Virtual del Catastro. Primero selecciona una parcela y en segundo lugar ejecuta el plugin para utlizarlo.
