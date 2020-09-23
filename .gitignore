@@ -1,0 +1,10 @@
+*.pydevproject
+*.py[co]
+*.gml
+.installed.cfg
+.idea/misc.xml
+.idea/modules.xml
+.idea/vcs.xml
+.idea/workspace.xml
+.idea/
+__pycache__
