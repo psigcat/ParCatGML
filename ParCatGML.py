@@ -1,21 +1,27 @@
 # -*- coding: utf-8 -*-
-
-from PyQt5.QtCore import Qt, QCoreApplication, QDateTime, QDir
+from PyQt5.QtCore import Qt, QCoreApplication, QDateTime
 from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtWidgets import QDialog, QAction, QMessageBox, QFileDialog, QPushButton, QLabel, QTableWidget, QTableWidgetItem, QFrame, QSpinBox
-from qgis.core import * #QgsApplication, QgsVectorLayer, QgsProject, QgsFeature, QgsWkbTypes
-import os, sys
+from PyQt5.QtWidgets import QDialog, QAction, QMessageBox, QFileDialog, QTableWidgetItem, QFrame
+from qgis.core import QgsProject, QgsPointXY
+
+import os
+import sys
+
 from .ParCatGML_dialog import Ui_ParCatGML_dialog
+
 
 class ParCatGML(QDialog):
 
     def __init__(self, iface):
+
         super(ParCatGML, self).__init__()
         self.iface = iface
 
         # Inicialitzar variables de treball
-        if sys.platform.upper().startswith("WIN") : self.so = "W"
-        else : self.so = "L"
+        if sys.platform.upper().startswith("WIN"):
+            self.so = "W"
+        else:
+            self.so = "L"
         self.plugin_dir = self.Barres(os.path.dirname(__file__))
         self.project_dir = ""
         self.actions = ""
@@ -24,29 +30,39 @@ class ParCatGML(QDialog):
         self.toolbar.setObjectName(u'ParCatGML')
         self.iface.newProjectCreated.connect(self.CanviProjecte)
         self.iface.projectRead.connect(self.CanviProjecte)
-        return
+
 
     def tr(self, message):
+
         # Convertir string utilitzant API Qt
         return QCoreApplication.translate('ParCatGML', message)
 
-    def Barres(self,bar):     #Conversió barres / i \ segons S.O.
+
+    def Barres(self, bar):
+        """ Conversió barres / i \ segons S.O. """
+
         if bar.strip() == "" : return ""
-        if self.so == "W" :
+        if self.so == "W":
             z = bar.replace('/','\\')
             if str(z)[-1] == "\\" : z = z[0:-1]
         else :
             z = bar.replace('\\','/')
             if str(z)[-1] == "/" : z = z[0:-1]
+
         return z
 
-    def Omple(self,v,n): # Omple de zeros a l'esquerra
-        if len(str(v)) < n :
+
+    def Omple(self, v, n):
+        """ Omple de zeros a l'esquerra """
+
+        if len(str(v)) < n:
             return str("0000000000"[0:n-len(str(v))])+str(v)
-        else :
+        else:
             return str(v)
 
-    def initGui(self): #inicialització formulari
+
+    def initGui(self):
+
         # Crear entrada a menú QGIS
         self.action = QAction(QIcon(self.Barres(self.plugin_dir+"/ParCatGML.png")), "ParCatGML", self.iface.mainWindow())
         self.action.setObjectName("ParCatGML")
@@ -70,9 +86,9 @@ class ParCatGML(QDialog):
         self.ui.Crear.clicked.connect(self.FerGML)
         self.ui.Tancar.clicked.connect(self.close)
 
-        return
 
-    def unload(self): # Descàrrega del plugin
+    def unload(self):
+
         # Elimina icones i accions
         self.iface.removePluginMenu(self.tr(u'&ParCatGML'),self.action)
         self.iface.removeToolBarIcon(self.action)
@@ -84,9 +100,11 @@ class ParCatGML(QDialog):
         self.ui.Crear.clicked.disconnect(self.FerGML)
         self.ui.Tancar.clicked.disconnect(self.close)
         del self.toolbar
-        return
+
             
-    def Missatge(self,av,t): # Finestra missatges
+    def Missatge(self, av, t):
+        """ Finestra missatges """
+
         m = QMessageBox()
         m.setText(self.tr(t))
         if av == "P" :
@@ -110,64 +128,85 @@ class ParCatGML(QDialog):
             m.setStandardButtons(QMessageBox.Ok)
             b = m.button(QMessageBox.Ok)
             b.setText("Seguir")
+
         return m.exec_()
 
-    def CanviProjecte(self): # Fer quan es canvia de projecte
+
+    def CanviProjecte(self):
+        """ Fer quan es canvia de projecte """
+
         self.project_dir = ""
         self.project_dir = self.Barres(QgsProject.instance().homePath())
-        return
 
-    def SelDesti(self): # Selecció carpeta destí
-        z=QFileDialog.getExistingDirectory(None,"Selección carpeta destino",self.ui.desti.text(),QFileDialog.ShowDirsOnly)
-        if z.strip() != "" : self.ui.desti.setText(self.Barres(z)) 
-        return
 
-    def FerGML(self): # Crea arxiu GML Format INSPIRE
-        #fixar versió
-        iv=3
-        if self.ui.Inspire4.isChecked() == True : iv=4
+    def SelDesti(self):
+        """ Selecció carpeta destí """
+
+        msg = "Selección carpeta destino"
+        z = QFileDialog.getExistingDirectory(None, msg, self.ui.desti.text(), QFileDialog.ShowDirsOnly)
+        if z.strip() != "":
+            self.ui.desti.setText(self.Barres(z))
+
+
+    def FerGML(self):
+        """ Crea arxiu GML Format INSPIRE """
+
+        # fixar versió
+        iv = 3
+        if self.ui.Inspire4.isChecked():
+            iv = 4
         # Comprovació arxiu a crear
-        z=str(self.ui.Selec.item(0,1).text())
-        if z == "" : z="anonimo"
-        f=self.Barres(self.ui.desti.text()+"/"+z+".gml")
-        if os.path.exists(f) :
-            if self.Missatge("P","El fichero "+z+".gml ya existe\n\nDesea reemplazarlo ?") == QMessageBox.No :
+        z = str(self.ui.Selec.item(0,1).text())
+        if z == "":
+            z = "anonimo"
+        f = self.Barres(self.ui.desti.text()+"/"+z+".gml")
+        if os.path.exists(f):
+            if self.Missatge("P","El fichero "+z+".gml ya existe\n\nDesea reemplazarlo ?") == QMessageBox.No:
                 return
-        z=self.CapGML(iv)
+
+        z = self.CapGML(iv)
         # Afegeix tag 'member' per cada parcel·la seleccionada
-        for fil in range(self.ui.Selec.rowCount()) :
-            ref=self.ui.Selec.item(fil,1).text()
-            promun=self.Omple(self.ui.Selec.item(fil,2).text(),2)+self.Omple(self.ui.Selec.item(fil,3).text(),3)
-            num=self.ui.Selec.item(fil,4).text()
-            area=self.ui.Selec.item(fil,5).text()
-            n=0
-            ver=self.geo[fil].vertexAt(0)
-            pun=[]
-            while ver != QgsPoint(0,0) :
+        total = self.ui.Selec.rowCount()
+        for fil in range(total):
+            ref = self.ui.Selec.item(fil,1).text()
+            promun = self.Omple(self.ui.Selec.item(fil,2).text(),2)+self.Omple(self.ui.Selec.item(fil,3).text(),3)
+            num = self.ui.Selec.item(fil,4).text()
+            area = self.ui.Selec.item(fil,5).text()
+            n = 0
+            ver = self.geo[fil].vertexAt(0)
+            pun = []
+            while ver != QgsPointXY(0, 0):
                 pun.append(ver)
-                n+=1
-                ver=self.geo[fil].vertexAt(n)
-            punL=""
-            for p in pun :
-                if punL != "" : punL+=" "
-                punL+=str(format(p.x(),"f"))+" "+str(format(p.y(),"f"))
-            xy=self.geo[fil].centroid().asPoint()
-            centroid=str(format(xy.x(),"f"))+" "+str(format(xy.y(),"f"))
-            bou=self.geo[fil].boundingBox()
-            min=str(format(bou.xMinimum(),"f"))+" "+str(format(bou.yMinimum(),"f"))
-            max=str(format(bou.xMaximum(),"f"))+" "+str(format(bou.yMaximum(),"f"))
-            z+=self.CosGML(iv,self.crs.split(":")[1],promun,ref,num,area,len(pun),punL,centroid,min,max)
-        z+=self.PeuGML(iv)
+                n += 1
+                ver = self.geo[fil].vertexAt(n)
+
+            punL = ""
+            for p in pun:
+                if punL != "":
+                    punL += " "
+                punL += str(format(p.x(),"f"))+" "+str(format(p.y(),"f"))
+
+            xy = self.geo[fil].centroid().asPoint()
+            centroid = str(format(xy.x(),"f"))+" "+str(format(xy.y(),"f"))
+            bou = self.geo[fil].boundingBox()
+            min = str(format(bou.xMinimum(),"f"))+" "+str(format(bou.yMinimum(),"f"))
+            max = str(format(bou.xMaximum(),"f"))+" "+str(format(bou.yMaximum(),"f"))
+            z += self.CosGML(iv,self.crs.split(":")[1],promun,ref,num,area,len(pun),punL,centroid,min,max)
+
+        z += self.PeuGML(iv)
+
         # Guarda arxiu gml
-        fg=open(f,"w+")
+        fg = open(f, "w+")
         fg.write(z)
         fg.close()
         
         self.Missatge("C","Archivo GML creado en la carpeta destino")
-        return
 
-    def CapGML(self,v) : # Capçalera GML
-        if v == 3 :
+
+    def CapGML(self, v):
+        """ Capçalera GML """
+
+        if v == 3:
             z='<?xml version="1.0" encoding="utf-8"?>\n'
             z+='<!-- Archivo generado automaticamente por el plugin Export GML catastro de España de QGIS. -->\n'
             z+='<!-- Parcela Catastral de la D.G. del Catastro. -->\n'
@@ -179,7 +218,7 @@ class ParCatGML(QDialog):
             z+='xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
             z+='xsi:schemaLocation="urn:x-inspire:specification:gmlas:CadastralParcels:3.0 '
             z+='http://inspire.ec.europa.eu/schemas/cp/3.0/CadastralParcels.xsd">\n'
-        else :
+        else:
             z='<?xml version="1.0" encoding="utf-8"?>\n'
             z+='<!-- Archivo generado automaticamente por el plugin ParCatGML de QGIS. -->\n'
             z+='<!-- Parcela Catastral para entregar a la D.G. del Catastro. Formato INSPIRE v4. -->\n'
@@ -201,10 +240,13 @@ class ParCatGML(QDialog):
             z+='timeStamp="'+self.ui.data.dateTime().toString(Qt.ISODate)+'" '
             z+='numberMatched="1" '
             z+='numberReturned="1"> '
+
         return z
 
+
     def CosGML(self,v,epsg,promun,ref,num,area,punN,punL,centroid,min,max) :
-        if v == 3 :
+
+        if v == 3:
             z='<gml:featureMember>\n<cp:CadastralParcel gml:id="ES.SDGC.CP.'+str(ref)+'">\n<gml:boundedBy>\n'
             z+='<gml:Envelope srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'">\n'
             z+='<gml:lowerCorner>'+str(min)+'</gml:lowerCorner>\n<gml:upperCorner>'+str(max)+'</gml:upperCorner>\n'
@@ -244,7 +286,7 @@ class ParCatGML(QDialog):
             z+='<gml:Point gml:id="ReferencePoint_ES.SDGC.CP.Z.X'+str(promun)+'U" srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'"> \n'
             z+='<gml:pos>'+str(centroid)+'</gml:pos>\n</gml:Point>\n</cp:referencePoint>\n<cp:validFrom xsi:nil="true" nilReason="unknown" />\n'
             z+='<cp:validTo xsi:nil="true" nilReason="unknown" />\n</cp:CadastralZoning>\n</gml:featureMember>\n'
-        else :
+        else:
             z='<wfs:member>\n'
             z+='<cp:CadastralParcel gml:id="ES.SDGC.CP.'+str(ref)+'">\n'
             z+='<cp:areaValue uom="m2">'+str(area)+'</cp:areaValue>\n'
@@ -259,49 +301,62 @@ class ParCatGML(QDialog):
             z+='<base:localId>'+str(num)+'</base:localId>\n<base:namespace>ES.LOCAL.CP</base:namespace>\n</base:Identifier>\n</cp:inspireId>\n'
             z+='<cp:label/>\n<cp:nationalCadastralReference/>\n</cp:CadastralParcel>\n'
             z+='</wfs:member>\n'
+
         return z
+
 
     def PeuGML(self,v) :
-        if v == 3 :
+
+        if v == 3:
             z='</gml:FeatureCollection>\n'        
-        else :
+        else:
             z='</wfs:FeatureCollection>\n'
+
         return z
 
-    def SelLis(self): # llegir una fila de la llista de seleccionats
-        fil=self.ui.Selec.currentRow();
+
+    def SelLis(self):
+        """ llegir una fila de la llista de seleccionats """
+
+        fil=self.ui.Selec.currentRow()
         if fil == -1 : return
         self.ui.refcat.setText(self.ui.Selec.item(fil,1).text())
         self.ui.pro.setText(self.ui.Selec.item(fil,2).text())
         self.ui.mun.setText(self.ui.Selec.item(fil,3).text())
         self.ui.num.setText(self.ui.Selec.item(fil,4).text())
         self.ui.area.setValue(int(self.ui.Selec.item(fil,5).text()))
-        return
 
-    def FerCanvi(self): # actualitzar la fila de la llista
-        fil=self.ui.Selec.currentRow();
-        if fil == -1 : return
+
+    def FerCanvi(self):
+        """ actualitzar la fila de la llista """
+
+        fil = self.ui.Selec.currentRow()
+        if fil == -1:
+            return
         self.ui.Selec.item(fil,1).setText(self.ui.refcat.text())
         self.ui.Selec.item(fil,2).setText(self.ui.pro.text())
         self.ui.Selec.item(fil,3).setText(self.ui.mun.text())
         self.ui.Selec.item(fil,4).setText(self.ui.num.text())
         self.ui.Selec.item(fil,5).setText(str(self.ui.area.value()))
-        return
 
-    def run(self): # Entrada plugin
+
+    def run(self):
+
         # Comprova capa i selecció
-        capa=self.iface.activeLayer()
-        if not capa :
-            self.Missatge("C","No hay ninguna capa activa")
+        capa = self.iface.activeLayer()
+        if not capa:
+            self.Missatge("C", "No hay ninguna capa activa")
             return
-        elems=list(capa.selectedFeatures())
-        ne=len(elems)
-        if ne == 0 :
-            self.Missatge("C","Debe seleccionar como mínimo una parcela")
+
+        elems = list(capa.selectedFeatures())
+        ne = len(elems)
+        if ne == 0:
+            self.Missatge("C", "Debe seleccionar como mínimo una parcela")
             return
-        self.crs=capa.crs().authid()
+
+        self.crs = capa.crs().authid()
         if self.crs.split(':')[0] != 'EPSG':
-            self.Missatge("C","La capa activa no utiliza un sistema de coordenadas compatible")
+            self.Missatge("C", "La capa activa no utiliza un sistema de coordenadas compatible")
             return
 
         # Verifica la informació que podem obtenir de la capa
@@ -326,7 +381,7 @@ class ParCatGML(QDialog):
         elif capa.id().startswith("A_ES_SDGC_CP_") : nMun="id"
         else : nMun=""
 
-        #f Carrega llista formulari
+        # Carrega llista formulari
         self.ui.data.setDateTime(QDateTime.currentDateTime())
         self.ui.refcat.setText("")
         self.ui.pro.setText("")
@@ -336,19 +391,21 @@ class ParCatGML(QDialog):
         self.ui.Selec.clear()
         self.ui.Selec.setColumnCount(0)
         self.ui.Selec.setRowCount(0)
-        self.ui.Selec.setColumnCount(6);
+        self.ui.Selec.setColumnCount(6)
         for col in range(6) : self.ui.Selec.setColumnWidth(col,int(str("20,120,25,35,60,60").split(",")[col]))
         self.ui.Selec.setHorizontalHeaderLabels(["S","RefCat","Pr.","Mun.","NumPar","Area"])
         self.ui.Selec.horizontalHeader().setFrameStyle(QFrame.Box | QFrame.Plain)
         self.ui.Selec.horizontalHeader().setLineWidth(1)
-        self.geo=[]
-        fil=-1
-        for elem in elems :
+        self.geo = []
+        fil = -1
+        for elem in elems:
             self.geo.append(elem.geometry())
-            if nRef != "" : ref=elem[nRef]
-            else : ref=""
-            num="A"
-            area=0
+            if nRef != "":
+                ref = elem[nRef]
+            else:
+                ref = ""
+            num = "A"
+            area = 0
             if nArea != "" : area=int(elem[nArea])
             if area == 0 : area=int(elem.geometry().area())
             if nPro == "id" : pro=capa.id()[13:15]
@@ -367,10 +424,13 @@ class ParCatGML(QDialog):
             c=QTableWidgetItem(str(area))
             c.setTextAlignment(Qt.AlignRight)
             self.ui.Selec.setItem(fil,5,c)
+
         self.ui.Selec.resizeRowsToContents()
-        if self.ui.desti.text().strip() == "" :
-            if self.project_dir != "" : self.ui.desti.setText(self.project_dir)
-            else : self.ui.desti.setText(self.plugin_dir)
+        if self.ui.desti.text().strip() == "":
+            if self.project_dir != "":
+                self.ui.desti.setText(self.project_dir)
+            else:
+                self.ui.desti.setText(self.plugin_dir)
         self.ui.Inspire3.setChecked(True)
         self.show()
-        return
+
