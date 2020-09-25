@@ -30,7 +30,7 @@ class ParCatGML(QDialog):
         self.toolbar.setObjectName(u'ParCatGML')
         self.iface.newProjectCreated.connect(self.change_project)
         self.iface.projectRead.connect(self.change_project)
-        self.capa = None
+        self.layer = None
         self.elems = None
 
 
@@ -76,7 +76,7 @@ class ParCatGML(QDialog):
         self.iface.addPluginToMenu("&ParCatGML", self.action)
         
         # Config form
-        self.ui=Ui_ParCatGML_dialog()
+        self.ui = Ui_ParCatGML_dialog()
         self.ui.setupUi(self)
         self.ui.Logo.setPixmap(QPixmap(self.manage_slash(self.plugin_dir + "/ParCatGML.png")))
         self.ui.Canvi.setIcon(QIcon(self.manage_slash(self.plugin_dir + "/EditTable.png")))
@@ -312,9 +312,9 @@ class ParCatGML(QDialog):
         """ GML footer """
 
         if v == 3:
-            z='</gml:FeatureCollection>\n'        
+            z = '</gml:FeatureCollection>\n'
         else:
-            z='</wfs:FeatureCollection>\n'
+            z = '</wfs:FeatureCollection>\n'
 
         return z
 
@@ -368,24 +368,24 @@ class ParCatGML(QDialog):
     def validate_features_layer(self):
         """ Validate selected features of active layer """
 
-        self.capa = self.iface.activeLayer()
-        if not self.capa:
+        self.layer = self.iface.activeLayer()
+        if not self.layer:
             self.show_message("C", "No hay ninguna capa activa")
             return False
 
-        self.elems = list(self.capa.selectedFeatures())
+        self.elems = list(self.layer.selectedFeatures())
         ne = len(self.elems)
         if ne == 0:
             self.show_message("C", "Debe seleccionar como mínimo una parcela")
             return False
 
-        self.crs = self.capa.crs().authid()
+        self.crs = self.layer.crs().authid()
         if self.crs.split(':')[0] != 'EPSG':
             self.show_message("C", "La capa activa no utiliza un sistema de coordenadas compatible")
             return False
 
         # Check geometry type
-        features = self.capa.selectedFeatures()
+        features = self.layer.selectedFeatures()
         for feature in features:
             geom = feature.geometry()
             if geom.type() != QgsWkbTypes.PolygonGeometry:
@@ -404,43 +404,43 @@ class ParCatGML(QDialog):
 
         # Validate layer fields
         nRef = ""
-        if self.capa.fields().indexFromName("REFCAT") != -1:
+        if self.layer.fields().indexFromName("REFCAT") != -1:
             nRef = "REFCAT"
-        elif self.capa.fields().indexFromName("refcat") != -1:
+        elif self.layer.fields().indexFromName("refcat") != -1:
             nRef = "refcat"
-        elif self.capa.fields().indexFromName("nationalCadastralReference") != -1:
+        elif self.layer.fields().indexFromName("nationalCadastralReference") != -1:
             nRef = "nationalCadastralReference"
 
         nArea = ""
-        if self.capa.fields().indexFromName("AREA") != -1:
+        if self.layer.fields().indexFromName("AREA") != -1:
             nArea = "AREA"
-        elif self.capa.fields().indexFromName("area") != -1:
+        elif self.layer.fields().indexFromName("area") != -1:
             nArea = "area"
-        elif self.capa.fields().indexFromName("areaValue") != -1:
+        elif self.layer.fields().indexFromName("areaValue") != -1:
             nArea = "areaValue"
 
         nPro = ""
-        if self.capa.fields().indexFromName("DELEGACION") != -1:
+        if self.layer.fields().indexFromName("DELEGACION") != -1:
             nPro = "DELEGACION"
-        elif self.capa.fields().indexFromName("DELEGACIO") != -1:
+        elif self.layer.fields().indexFromName("DELEGACIO") != -1:
             nPro = "DELEGACIO"
-        elif self.capa.fields().indexFromName("delegacion") != -1:
+        elif self.layer.fields().indexFromName("delegacion") != -1:
             nPro = "delegacion"
-        elif self.capa.fields().indexFromName("delegacio") != -1:
+        elif self.layer.fields().indexFromName("delegacio") != -1:
             nPro = "delegacio"
-        elif self.capa.id().startswith("A_ES_SDGC_CP_"):
+        elif self.layer.id().startswith("A_ES_SDGC_CP_"):
             nPro = "id"
 
         nMun = ""
-        if self.capa.fields().indexFromName("MUNICIPIO") != -1:
+        if self.layer.fields().indexFromName("MUNICIPIO") != -1:
             nMun = "MUNICIPIO"
-        elif self.capa.fields().indexFromName("MUNICIPI") != -1:
+        elif self.layer.fields().indexFromName("MUNICIPI") != -1:
             nMun = "MUNICIPI"
-        elif self.capa.fields().indexFromName("municipio") != -1:
+        elif self.layer.fields().indexFromName("municipio") != -1:
             nMun = "municipio"
-        elif self.capa.fields().indexFromName("municipi") != -1:
+        elif self.layer.fields().indexFromName("municipi") != -1:
             nMun = "municipi"
-        elif self.capa.id().startswith("A_ES_SDGC_CP_"):
+        elif self.layer.id().startswith("A_ES_SDGC_CP_"):
             nMun = "id"
 
         # Load form list
@@ -465,28 +465,25 @@ class ParCatGML(QDialog):
         fil = -1
         for elem in self.elems:
             self.geo.append(elem.geometry())
+            num = "A"
+            ref = ""
+            area = 0
+            pro = ""
+            mun = ""
             if nRef != "":
                 ref = elem[nRef]
-            else:
-                ref = ""
-            num = "A"
-            area = 0
             if nArea != "":
                 area = int(elem[nArea])
             if area == 0:
                 area = int(elem.geometry().area())
             if nPro == "id":
-                pro = self.capa.id()[13:15]
+                pro = self.layer.id()[13:15]
             elif nPro != "":
                 pro = str(elem[nPro])
-            else:
-                pro=""
             if nMun == "id":
-                mun = self.capa.id()[15:18]
+                mun = self.layer.id()[15:18]
             elif nMun != "":
                 mun = str(elem[nMun])
-            else:
-                mun = ""
 
             fil += 1
             self.ui.Selec.setRowCount(fil+1)
