@@ -379,6 +379,17 @@ class ParCatGML(QDialog):
             self.Missatge("C", "La capa activa no utiliza un sistema de coordenadas compatible")
             return False
 
+        # Check geometry type
+        features = self.capa.selectedFeatures()
+        for feature in features:
+            geom = feature.geometry()
+            if geom.type() != QgsWkbTypes.PolygonGeometry:
+                msg = "La capa seleccionada no es de tipo polígono"
+                self.Missatge("W", msg)
+                return False
+            else:
+                return True
+
 
     def run(self):
 
