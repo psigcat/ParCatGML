@@ -110,7 +110,7 @@ class ParCatGML(QDialog):
 
         m = QMessageBox()
         m.setText(self.tr(t))
-        if av == "P" :
+        if av == "P":
             m.setIcon(QMessageBox.Information)
             m.setWindowTitle("Pregunta")
             m.setStandardButtons(QMessageBox.Ok | QMessageBox.No)
@@ -118,14 +118,14 @@ class ParCatGML(QDialog):
             b1.setText("Si")
             b2 = m.button(QMessageBox.No)
             b2.setText("No")
-        else :
-            if av == "W" :
+        else:
+            if av == "W":
                 m.setIcon(QMessageBox.Warning)
-                z="Atención"
-            elif av == "C" :
+                z = "Atención"
+            elif av == "C":
                 m.setIcon(QMessageBox.Critical)
-                z="Error"
-            else :
+                z = "Error"
+            else:
                 m.setIcon(QMessageBox.Information)
             m.setWindowTitle("Aviso")
             m.setStandardButtons(QMessageBox.Ok)
@@ -159,22 +159,23 @@ class ParCatGML(QDialog):
         if self.ui.Inspire4.isChecked():
             iv = 4
         # Comprovació arxiu a crear
-        z = str(self.ui.Selec.item(0,1).text())
-        if z == "":
-            z = "anonimo"
-        f = self.Barres(self.ui.desti.text()+"/"+z+".gml")
+        filename = str(self.ui.Selec.item(0,1).text())
+        if filename == "":
+            filename = "anonimo"
+        f = self.Barres(self.ui.desti.text() + "/" + filename + ".gml")
         if os.path.exists(f):
-            if self.Missatge("P","El fichero "+z+".gml ya existe\n\nDesea reemplazarlo ?") == QMessageBox.No:
+            msg = "El fichero " + filename + ".gml ya existe\n\n¿Desea reemplazarlo?"
+            if self.Missatge("P", msg) == QMessageBox.No:
                 return
 
         z = self.CapGML(iv)
         # Afegeix tag 'member' per cada parcel·la seleccionada
         total = self.ui.Selec.rowCount()
         for fil in range(total):
-            ref = self.ui.Selec.item(fil,1).text()
-            promun = self.Omple(self.ui.Selec.item(fil,2).text(),2)+self.Omple(self.ui.Selec.item(fil,3).text(),3)
-            num = self.ui.Selec.item(fil,4).text()
-            area = self.ui.Selec.item(fil,5).text()
+            ref = self.ui.Selec.item(fil, 1).text()
+            promun = self.Omple(self.ui.Selec.item(fil, 2).text(), 2) + self.Omple(self.ui.Selec.item(fil, 3).text(), 3)
+            num = self.ui.Selec.item(fil, 4).text()
+            area = self.ui.Selec.item(fil, 5).text()
 
             # Get list of points of selected polygon
             polygon = self.geo[fil]
@@ -203,7 +204,7 @@ class ParCatGML(QDialog):
         fg.write(z)
         fg.close()
         
-        self.Missatge("C","Archivo GML creado en la carpeta destino")
+        self.Missatge("M", "Archivo GML creado en la carpeta destino: \n" + filename + ".gml")
 
 
     def CapGML(self, v):
@@ -247,7 +248,7 @@ class ParCatGML(QDialog):
         return z
 
 
-    def CosGML(self,v,epsg,promun,ref,num,area,punN,punL,centroid,min,max) :
+    def CosGML(self, v, epsg, promun, ref, num, area, punN, punL, centroid ,min, max) :
 
         if v == 3:
             z='<gml:featureMember>\n<cp:CadastralParcel gml:id="ES.SDGC.CP.'+str(ref)+'">\n<gml:boundedBy>\n'
@@ -321,8 +322,10 @@ class ParCatGML(QDialog):
     def SelLis(self):
         """ llegir una fila de la llista de seleccionats """
 
-        fil=self.ui.Selec.currentRow()
-        if fil == -1 : return
+        fil = self.ui.Selec.currentRow()
+        if fil == -1:
+            return
+
         self.ui.refcat.setText(self.ui.Selec.item(fil,1).text())
         self.ui.pro.setText(self.ui.Selec.item(fil,2).text())
         self.ui.mun.setText(self.ui.Selec.item(fil,3).text())
@@ -336,6 +339,7 @@ class ParCatGML(QDialog):
         fil = self.ui.Selec.currentRow()
         if fil == -1:
             return
+
         self.ui.Selec.item(fil,1).setText(self.ui.refcat.text())
         self.ui.Selec.item(fil,2).setText(self.ui.pro.text())
         self.ui.Selec.item(fil,3).setText(self.ui.mun.text())
