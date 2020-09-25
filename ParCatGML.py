@@ -2,7 +2,7 @@
 from PyQt5.QtCore import Qt, QCoreApplication, QDateTime
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QDialog, QAction, QMessageBox, QFileDialog, QTableWidgetItem, QFrame
-from qgis.core import QgsProject, QgsPointXY
+from qgis.core import QgsProject, QgsPointXY, QgsWkbTypes, QgsGeometry
 
 import os
 import sys
@@ -22,6 +22,7 @@ class ParCatGML(QDialog):
             self.so = "W"
         else:
             self.so = "L"
+
         self.plugin_dir = self.Barres(os.path.dirname(__file__))
         self.project_dir = ""
         self.actions = ""
@@ -30,6 +31,8 @@ class ParCatGML(QDialog):
         self.toolbar.setObjectName(u'ParCatGML')
         self.iface.newProjectCreated.connect(self.CanviProjecte)
         self.iface.projectRead.connect(self.CanviProjecte)
+        self.capa = None
+        self.elems = None
 
 
     def tr(self, message):
@@ -172,26 +175,26 @@ class ParCatGML(QDialog):
             promun = self.Omple(self.ui.Selec.item(fil,2).text(),2)+self.Omple(self.ui.Selec.item(fil,3).text(),3)
             num = self.ui.Selec.item(fil,4).text()
             area = self.ui.Selec.item(fil,5).text()
-            n = 0
-            ver = self.geo[fil].vertexAt(0)
-            pun = []
-            while ver != QgsPointXY(0, 0):
-                pun.append(ver)
-                n += 1
-                ver = self.geo[fil].vertexAt(n)
+
+            # Get list of points of selected polygon
+            polygon = self.geo[fil]
+            list_points = self.get_points(polygon)
+            if list_points is None:
+                return
 
             punL = ""
-            for p in pun:
+            for point in list_points:
                 if punL != "":
                     punL += " "
-                punL += str(format(p.x(),"f"))+" "+str(format(p.y(),"f"))
+                punL += str(format(point.x(), "f")) + " " + str(format(point.y(), "f"))
 
             xy = self.geo[fil].centroid().asPoint()
-            centroid = str(format(xy.x(),"f"))+" "+str(format(xy.y(),"f"))
+            centroid = str(format(xy.x(),"f")) + " " + str(format(xy.y(), "f"))
             bou = self.geo[fil].boundingBox()
-            min = str(format(bou.xMinimum(),"f"))+" "+str(format(bou.yMinimum(),"f"))
-            max = str(format(bou.xMaximum(),"f"))+" "+str(format(bou.yMaximum(),"f"))
-            z += self.CosGML(iv,self.crs.split(":")[1],promun,ref,num,area,len(pun),punL,centroid,min,max)
+            min = str(format(bou.xMinimum(),"f")) + " " + str(format(bou.yMinimum(), "f"))
+            max = str(format(bou.xMaximum(),"f")) + " " + str(format(bou.yMaximum(), "f"))
+            epsg = self.crs.split(":")[1]
+            z += self.CosGML(iv, epsg, promun, ref, num, area, len(list_points), punL, centroid, min, max)
 
         z += self.PeuGML(iv)
 
@@ -340,46 +343,89 @@ class ParCatGML(QDialog):
         self.ui.Selec.item(fil,5).setText(str(self.ui.area.value()))
 
 
-    def run(self):
+    def get_points(self, geom):
 
-        # Comprova capa i selecció
-        capa = self.iface.activeLayer()
-        if not capa:
+        list_points = []
+        wkb_type = geom.wkbType()
+        geom_type = geom.type()
+        if wkb_type == QgsWkbTypes.Polygon:
+            polygon = geom.asPolygon()
+            list_points = polygon[0]
+
+        elif wkb_type == QgsWkbTypes.MultiPolygon:
+            list_polygons = geom.asMultiPolygon()
+            polygon = list_polygons[0]
+            list_points = polygon[0]
+
+        return list_points
+
+
+    def validate_features_layer(self):
+        """ Validate selected features of active layer """
+
+        self.capa = self.iface.activeLayer()
+        if not self.capa:
             self.Missatge("C", "No hay ninguna capa activa")
-            return
+            return False
 
-        elems = list(capa.selectedFeatures())
-        ne = len(elems)
+        self.elems = list(self.capa.selectedFeatures())
+        ne = len(self.elems)
         if ne == 0:
             self.Missatge("C", "Debe seleccionar como mínimo una parcela")
-            return
+            return False
 
-        self.crs = capa.crs().authid()
+        self.crs = self.capa.crs().authid()
         if self.crs.split(':')[0] != 'EPSG':
             self.Missatge("C", "La capa activa no utiliza un sistema de coordenadas compatible")
+            return False
+
+
+    def run(self):
+
+        # Validate selected features of active layer
+        if not self.validate_features_layer():
             return
 
         # Verifica la informació que podem obtenir de la capa
-        if capa.fields().indexFromName("REFCAT") != -1 : nRef="REFCAT"
-        elif capa.fields().indexFromName("refcat") != -1 : nRef="refcat"
-        elif capa.fields().indexFromName("nationalCadastralReference") != -1  : nRef="nationalCadastralReference"
-        else : nRef=""
-        if capa.fields().indexFromName("AREA") != -1 : nArea="AREA"
-        elif capa.fields().indexFromName("area") != -1 : nArea="area"
-        elif capa.fields().indexFromName("areaValue") != -1  : nArea="areaValue"
-        else : nArea=""
-        if capa.fields().indexFromName("DELEGACION") != -1 : nPro="DELEGACION"
-        elif capa.fields().indexFromName("DELEGACIO") != -1 : nPro="DELEGACIO"
-        elif capa.fields().indexFromName("delegacion") != -1 : nPro="delegacion"
-        elif capa.fields().indexFromName("delegacio") != -1 : nPro="delegacio"
-        elif capa.id().startswith("A_ES_SDGC_CP_") : nPro="id"
-        else : nPro=""
-        if capa.fields().indexFromName("MUNICIPIO") != -1 : nMun="MUNICIPIO"
-        elif capa.fields().indexFromName("MUNICIPI") != -1 : nMun="MUNICIPI"
-        elif capa.fields().indexFromName("municipio") != -1 : nMun="municipio"
-        elif capa.fields().indexFromName("municipi") != -1 : nMun="municipi"
-        elif capa.id().startswith("A_ES_SDGC_CP_") : nMun="id"
-        else : nMun=""
+        nRef = ""
+        if self.capa.fields().indexFromName("REFCAT") != -1:
+            nRef = "REFCAT"
+        elif self.capa.fields().indexFromName("refcat") != -1:
+            nRef = "refcat"
+        elif self.capa.fields().indexFromName("nationalCadastralReference") != -1:
+            nRef = "nationalCadastralReference"
+
+        nArea = ""
+        if self.capa.fields().indexFromName("AREA") != -1:
+            nArea = "AREA"
+        elif self.capa.fields().indexFromName("area") != -1:
+            nArea = "area"
+        elif self.capa.fields().indexFromName("areaValue") != -1:
+            nArea = "areaValue"
+
+        nPro = ""
+        if self.capa.fields().indexFromName("DELEGACION") != -1:
+            nPro = "DELEGACION"
+        elif self.capa.fields().indexFromName("DELEGACIO") != -1:
+            nPro = "DELEGACIO"
+        elif self.capa.fields().indexFromName("delegacion") != -1:
+            nPro = "delegacion"
+        elif self.capa.fields().indexFromName("delegacio") != -1:
+            nPro = "delegacio"
+        elif self.capa.id().startswith("A_ES_SDGC_CP_"):
+            nPro = "id"
+
+        nMun = ""
+        if self.capa.fields().indexFromName("MUNICIPIO") != -1:
+            nMun = "MUNICIPIO"
+        elif self.capa.fields().indexFromName("MUNICIPI") != -1:
+            nMun = "MUNICIPI"
+        elif self.capa.fields().indexFromName("municipio") != -1:
+            nMun = "municipio"
+        elif self.capa.fields().indexFromName("municipi") != -1:
+            nMun = "municipi"
+        elif self.capa.id().startswith("A_ES_SDGC_CP_"):
+            nMun = "id"
 
         # Carrega llista formulari
         self.ui.data.setDateTime(QDateTime.currentDateTime())
@@ -392,13 +438,16 @@ class ParCatGML(QDialog):
         self.ui.Selec.setColumnCount(0)
         self.ui.Selec.setRowCount(0)
         self.ui.Selec.setColumnCount(6)
-        for col in range(6) : self.ui.Selec.setColumnWidth(col,int(str("20,120,25,35,60,60").split(",")[col]))
-        self.ui.Selec.setHorizontalHeaderLabels(["S","RefCat","Pr.","Mun.","NumPar","Area"])
+        for col in range(6):
+            self.ui.Selec.setColumnWidth(col, int(str("20,120,25,35,60,60").split(",")[col]))
+
+        self.ui.Selec.setHorizontalHeaderLabels(["S", "RefCat", "Pr.", "Mun.", "NumPar", "Area"])
         self.ui.Selec.horizontalHeader().setFrameStyle(QFrame.Box | QFrame.Plain)
         self.ui.Selec.horizontalHeader().setLineWidth(1)
+
         self.geo = []
         fil = -1
-        for elem in elems:
+        for elem in self.elems:
             self.geo.append(elem.geometry())
             if nRef != "":
                 ref = elem[nRef]
@@ -406,24 +455,33 @@ class ParCatGML(QDialog):
                 ref = ""
             num = "A"
             area = 0
-            if nArea != "" : area=int(elem[nArea])
-            if area == 0 : area=int(elem.geometry().area())
-            if nPro == "id" : pro=capa.id()[13:15]
-            elif nPro != "" : pro=str(elem[nPro])
-            else : pro=""
-            if nMun == "id" : mun=capa.id()[15:18]
-            elif nMun != "" : mun=str(elem[nMun])
-            else : mun = ""
-            fil+=1
+            if nArea != "":
+                area = int(elem[nArea])
+            if area == 0:
+                area = int(elem.geometry().area())
+            if nPro == "id":
+                pro = self.capa.id()[13:15]
+            elif nPro != "":
+                pro = str(elem[nPro])
+            else:
+                pro=""
+            if nMun == "id":
+                mun = self.capa.id()[15:18]
+            elif nMun != "":
+                mun = str(elem[nMun])
+            else:
+                mun = ""
+
+            fil += 1
             self.ui.Selec.setRowCount(fil+1)
-            self.ui.Selec.setItem(fil,0,QTableWidgetItem(str(fil)))
-            self.ui.Selec.setItem(fil,1,QTableWidgetItem(str(ref)))
-            self.ui.Selec.setItem(fil,2,QTableWidgetItem(str(pro)))
-            self.ui.Selec.setItem(fil,3,QTableWidgetItem(str(mun)))
-            self.ui.Selec.setItem(fil,4,QTableWidgetItem(str(num)))
-            c=QTableWidgetItem(str(area))
+            self.ui.Selec.setItem(fil, 0, QTableWidgetItem(str(fil)))
+            self.ui.Selec.setItem(fil, 1, QTableWidgetItem(str(ref)))
+            self.ui.Selec.setItem(fil, 2, QTableWidgetItem(str(pro)))
+            self.ui.Selec.setItem(fil, 3, QTableWidgetItem(str(mun)))
+            self.ui.Selec.setItem(fil, 4, QTableWidgetItem(str(num)))
+            c = QTableWidgetItem(str(area))
             c.setTextAlignment(Qt.AlignRight)
-            self.ui.Selec.setItem(fil,5,c)
+            self.ui.Selec.setItem(fil, 5, c)
 
         self.ui.Selec.resizeRowsToContents()
         if self.ui.desti.text().strip() == "":
