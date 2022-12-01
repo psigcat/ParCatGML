@@ -2,10 +2,11 @@
 from PyQt5.QtCore import Qt, QCoreApplication, QDateTime
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QDialog, QAction, QMessageBox, QFileDialog, QTableWidgetItem, QFrame
-from qgis.core import QgsProject, QgsPointXY, QgsWkbTypes, QgsGeometry
+from qgis.core import QgsProject, QgsPointXY, QgsWkbTypes, QgsGeometry, QgsMapLayer
 
 import os
 import sys
+import string
 
 from .ParCatGML_dialog import Ui_ParCatGML_dialog
 
@@ -177,23 +178,19 @@ class ParCatGML(QDialog):
 
             # Get list of points of selected polygon
             polygon = self.geo[fil]
-            list_points = self.get_points(polygon)
-            if list_points is None:
-                return
-
-            punL = ""
-            for point in list_points:
-                if punL != "":
-                    punL += " "
-                punL += str(format(point.x(), "f")) + " " + str(format(point.y(), "f"))
-
+            rings = self.get_rings(polygon)
+            
+            if len(rings) == 0:
+                return 
+            """
             xy = self.geo[fil].centroid().asPoint()
             centroid = str(format(xy.x(),"f")) + " " + str(format(xy.y(), "f"))
+            """
             bou = self.geo[fil].boundingBox()
             min = str(format(bou.xMinimum(),"f")) + " " + str(format(bou.yMinimum(), "f"))
             max = str(format(bou.xMaximum(),"f")) + " " + str(format(bou.yMaximum(), "f"))
             epsg = self.crs.split(":")[1]
-            z += self.body_gml(iv, epsg, promun, ref, num, area, len(list_points), punL, centroid, min, max)
+            z += self.body_gml(iv, epsg, promun, ref, num, area, rings, min, max)
 
         z += self.footer_gml(iv)
 
@@ -212,7 +209,7 @@ class ParCatGML(QDialog):
             z='<?xml version="1.0" encoding="utf-8"?>\n'
             z+='<!-- Archivo generado automaticamente por el plugin Export GML catastro de España de QGIS. -->\n'
             z+='<!-- Parcela Catastral de la D.G. del Catastro. -->\n'
-            z+='<gml:FeatureCollection gml:id="ES.SDGC.CP" xmlns:gml="http://www.opengis.net/gml/3.2" '
+            z+='<gml:FeatureCollection gml:id="ES.LOCAL.CP" xmlns:gml="http://www.opengis.net/gml/3.2" '
             z+='xmlns:gmd="http://www.isotc211.org/2005/gmd" '
             z+='xmlns:ogc="http://www.opengis.net/ogc" '
             z+='xmlns:xlink="http://www.w3.org/1999/xlink" '
@@ -224,86 +221,118 @@ class ParCatGML(QDialog):
             z='<?xml version="1.0" encoding="utf-8"?>\n'
             z+='<!-- Archivo generado automaticamente por el plugin ParCatGML de QGIS. -->\n'
             z+='<!-- Parcela Catastral para entregar a la D.G. del Catastro. Formato INSPIRE v4. -->\n'
-            z+='<wfs:FeatureCollection '
-            z+='gml:id="ES.SDGC.CP" '
+            z+='<FeatureCollection ' ## COMENTARIO D.G. del Catastro: El namespace "wfs:" no se admite en la validación de esta etiqueta
             z+='xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
-            z+='xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
-            z+='xmlns:xlink="http://www.w3.org/1999/xlink" '
             z+='xmlns:gml="http://www.opengis.net/gml/3.2" '
-            z+='xmins:gco="http://www.isotc211.org/2005/gco" '
-            z+='xmlns:ogc="http://www.opengis.net/ogc" ' #v3
+            z+='xmlns:xlink="http://www.w3.org/1999/xlink" '
             z+='xmlns:cp="http://inspire.ec.europa.eu/schemas/cp/4.0" '
             z+='xmlns:gmd="http://www.isotc211.org/2005/gmd" '
-            z+='xsi:schemaLocation="http://www.opengis.net/wfs/2.0'
-            z+=' http://schemas.opengis.net/wfs/2.0/wfs.xsd'
-            z+=' http://inspire.ec.europa.eu/schemas/cp/4.0'
-            z+=' http://inspire.ec.europa.eu/schemas/cp/4.0/CadastralParcels.xsd" '
-            z+='xmins:wfs="http://www.opengis.net/wfs/2.0" '
+            z+='xsi:schemaLocation="http://www.opengis.net/wfs/2.0 http://schemas.opengis.net/wfs/2.0/wfs.xsd http://inspire.ec.europa.eu/schemas/cp/4.0 http://inspire.ec.europa.eu/schemas/cp/4.0/CadastralParcels.xsd" '
+            z+='xmlns="http://www.opengis.net/wfs/2.0" '
             z+='timeStamp="'+self.ui.data.dateTime().toString(Qt.ISODate)+'" '
             z+='numberMatched="1" '
-            z+='numberReturned="1"> '
+            z+='numberReturned="1">\n'
 
         return z
 
 
-    def body_gml(self, v, epsg, promun, ref, num, area, punN, punL, centroid ,min, max) :
+    def body_gml(self, v, epsg, promun, ref, num, area, rings ,min, max) :
         """ GML body """
+        
+        exterior_ring = rings[0]
+        [punN, punL] = self.get_points(exterior_ring)
+        if len(rings) > 1:
+            interior_rings = rings[1]
 
         if v == 3:
-            z='<gml:featureMember>\n<cp:CadastralParcel gml:id="ES.SDGC.CP.'+str(ref)+'">\n<gml:boundedBy>\n'
+            z='<gml:featureMember>\n<cp:CadastralParcel gml:id="ES.LOCAL.CP.'+str(ref)+'">\n<gml:boundedBy>\n'
             z+='<gml:Envelope srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'">\n'
             z+='<gml:lowerCorner>'+str(min)+'</gml:lowerCorner>\n<gml:upperCorner>'+str(max)+'</gml:upperCorner>\n'
             z+='</gml:Envelope>\n</gml:boundedBy>\n<cp:areaValue uom="m2">'+str(area)+'</cp:areaValue>\n'
             z+='<cp:beginLifespanVersion>'+self.ui.data.dateTime().toString(Qt.ISODate)+'</cp:beginLifespanVersion>\n'
             z+='<cp:endLifespanVersion xsi:nil="true" nilReason="other:unpopulated"></cp:endLifespanVersion>\n<cp:geometry>\n'
-            z+='<gml:MultiSurface gml:id="MultiSurface_ES.SDGC.CP.'+str(ref)+'" srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'">\n<gml:surfaceMember>\n'
-            z+='<gml:Surface gml:id="Surface_ES.SDGC.CP.'+str(ref)+'.1" srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'">\n'
-            z+='<gml:patches>\n<gml:PolygonPatch>\n<gml:exterior>\n<gml:LinearRing>\n'
+            z+='<gml:MultiSurface gml:id="MultiSurface_ES.LOCAL.CP.'+str(ref)+'" srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'">\n<gml:surfaceMember>\n'
+            z+='<gml:Surface gml:id="Surface_ES.LOCAL.CP.'+str(ref)+'.1" srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'">\n'
+            z+='<gml:patches>\n<gml:PolygonPatch>'
+            
+            ## COMENTARIO D.G. del Catastro: Debemos añadir los anillos interiores al GML para parcelas con huecos
+            z+='\n<gml:exterior>\n<gml:LinearRing>\n'
             z+='<gml:posList srsDimension="2" count="'+str(punN)+'">'+str(punL)+'</gml:posList>\n'
-            z+='</gml:LinearRing>\n</gml:exterior>\n</gml:PolygonPatch>\n</gml:patches>\n</gml:Surface>\n</gml:surfaceMember>\n</gml:MultiSurface>\n'
+            z+='</gml:LinearRing>\n</gml:exterior>' 
+            if len(interior_rings) > 0:
+                for ring in interior_rings:
+                    [punN, punL] = self.get_points(ring)
+                    z+= '\n<gml:interior>\n<gml:LinearRing>\n'
+                    z+='<gml:posList srsDimension="2" count="'+str(punN)+'">'+str(punL)+'</gml:posList>\n'
+                    z+='</gml:LinearRing>\n</gml:interior>'
+            
+            z+= '\n</gml:PolygonPatch>\n</gml:patches>\n</gml:Surface>\n</gml:surfaceMember>\n</gml:MultiSurface>\n'
+            
             z+='</cp:geometry>\n<cp:inspireId xmlns:base="urn:x-inspire:specification:gmlas:BaseTypes:3.2">\n<base:Identifier>\n'
             z+='<base:localId>'+str(num)+'</base:localId>\n'
             z+='<base:namespace>ES.LOCAL.CP</base:namespace>\n</base:Identifier>\n</cp:inspireId>\n<cp:label>05</cp:label>\n'
-            z+='<cp:nationalCadastralReference>2</cp:nationalCadastralReference>\n<cp:referencePoint>\n'
-            z+='<gml:Point gml:id="ReferencePoint_ES.SDGC.CP.'+str(ref)+'" srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'">\n'
+            z+='<cp:nationalCadastralReference>2</cp:nationalCadastralReference>\n'
+            """
+            z+='<cp:referencePoint>\n'
+            z+='<gml:Point gml:id="ReferencePoint_ES.LOCAL.CP.'+str(ref)+'" srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'">\n'
             z+='<gml:pos>'+str(centroid)+'</gml:pos>\n</gml:Point>\n</cp:referencePoint>\n'
             z+='<cp:validFrom xsi:nil="true" nilReason="other:unpopulated"></cp:validFrom>\n<cp:validTo xsi:nil="true" nilReason="other:unpopulated"></cp:validTo>\n'
-            z+='<cp:zoning xlink:href="#ES.SDGC.CP.Z.'+str(promun)+'U"></cp:zoning>\n</cp:CadastralParcel>\n</gml:featureMember>\n<gml:featureMember>\n'
-            z+='<cp:CadastralZoning gml:id="ES.SDGC.CP.Z.'+str(promun)+'U">\n<gml:boundedBy>\n<gml:Envelope srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'">\n'
+            z+='<cp:zoning xlink:href="#ES.LOCAL.CP.Z.'+str(promun)+'U"></cp:zoning>\n
+            """
+            z+='</cp:CadastralParcel>\n</gml:featureMember>\n'
+            """
+            z+='<gml:featureMember>\n<cp:CadastralZoning gml:id="ES.LOCAL.CP.Z.'+str(promun)+'U">\n<gml:boundedBy>\n<gml:Envelope srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'">\n'
             z+='<gml:lowerCorner>'+str(min)+'</gml:lowerCorner>\n<gml:upperCorner>'+str(max)+'</gml:upperCorner>\n</gml:Envelope>\n</gml:boundedBy>\n'
             z+='<cp:beginLifespanVersion>'+self.ui.data.dateTime().toString(Qt.ISODate)+'</cp:beginLifespanVersion>\n'
             z+='<cp:endLifespanVersion xsi:nil="true" nilReason="other:unpopulated"></cp:endLifespanVersion>\n'
             z+='<cp:estimatedAccuracy uom="m">0.60</cp:estimatedAccuracy>\n<cp:geometry>\n'
-            z+='<gml:MultiSurface gml:id="MultiSurface_ES.SDGC.CP.Z.'+str(promun)+'U" srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'">\n<gml:surfaceMember>\n'
-            z+='<gml:Surface gml:id="Surface_ES.SDGC.CP.Z.'+str(promun)+'U.1" srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'">\n'
+            z+='<gml:MultiSurface gml:id="MultiSurface_ES.LOCAL.CP.Z.'+str(promun)+'U" srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'">\n<gml:surfaceMember>\n'
+            z+='<gml:Surface gml:id="Surface_ES.LOCAL.CP.Z.'+str(promun)+'U.1" srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'">\n'
             z+='<gml:patches>\n<gml:PolygonPatch>\n<gml:exterior>\n<gml:LinearRing>\n'
             z+='<gml:posList srsDimension="2" count="'+str(punN)+'">'+str(punL)+'</gml:posList>\n'
             z+='</gml:LinearRing>\n</gml:exterior>\n</gml:PolygonPatch>\n</gml:patches>\n</gml:Surface>\n</gml:surfaceMember>\n</gml:MultiSurface>\n'
             z+='</cp:geometry>\n<cp:inspireId xmlns:base="urn:x-inspire:specification:gmlas:BaseTypes:3.2">\n<base:Identifier>\n'
-            z+='<base:localId>'+str(promun)+'U</base:localId>\n<base:namespace>ES.SDGC.CP.Z</base:namespace>\n'
+            z+='<base:localId>'+str(promun)+'U</base:localId>\n<base:namespace>ES.LOCAL.CP.Z</base:namespace>\n'
             z+='</base:Identifier>\n</cp:inspireId>\n<cp:label>'+str(promun)+'U</cp:label>\n'
             z+='<cp:level codeSpace="urn:x-inspire:specification:gmlas:CadastralParcels:3.0/CadastralZoningLevelValue">1stOrder</cp:level>\n'
             z+='<cp:levelName>\n<gmd:LocalisedCharacterString locale="esp">MAPA</gmd:LocalisedCharacterString>\n</cp:levelName>\n'
             z+='<cp:nationalCadastalZoningReference>'+str(promun)+'U</cp:nationalCadastalZoningReference>\n'
             z+='<cp:originalMapScaleDenominator>1000</cp:originalMapScaleDenominator>\n<cp:referencePoint>\n'
-            z+='<gml:Point gml:id="ReferencePoint_ES.SDGC.CP.Z.X'+str(promun)+'U" srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'"> \n'
+            z+='<gml:Point gml:id="ReferencePoint_ES.LOCAL.CP.Z.X'+str(promun)+'U" srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'"> \n'
             z+='<gml:pos>'+str(centroid)+'</gml:pos>\n</gml:Point>\n</cp:referencePoint>\n<cp:validFrom xsi:nil="true" nilReason="unknown" />\n'
             z+='<cp:validTo xsi:nil="true" nilReason="unknown" />\n</cp:CadastralZoning>\n</gml:featureMember>\n'
+            """
         else:
-            z='<wfs:member>\n'
-            z+='<cp:CadastralParcel gml:id="ES.SDGC.CP.'+str(ref)+'">\n'
+            z='<member>\n'
+            z+='<cp:CadastralParcel gml:id="ES.LOCAL.CP.'+str(ref)+'">\n'
             z+='<cp:areaValue uom="m2">'+str(area)+'</cp:areaValue>\n'
+            
+            ## COMENTARIO D.G. del Catastro: Etiquetas necesarias para el esquema, aunque sean nulas:
+            z+='<cp:beginLifespanVersion xsi:nil="true" nilReason="http://inspire.ec.europa.eu/codelist/VoidReasonValue/Unpopulated"></cp:beginLifespanVersion>\n'
+            z+='<cp:endLifespanVersion xsi:nil="true" nilReason="http://inspire.ec.europa.eu/codelist/VoidReasonValue/Unpopulated"></cp:endLifespanVersion>\n'
+            
             z+='<cp:geometry>\n'
-            z+='<gml:MultiSurface gml:id="MultiSurface_ES.SDGC.CP.'+str(ref)+'" srsName="http://www.opengis.net/def/crs/EPSG/0/'+str(epsg)+'">\n'
+            z+='<gml:MultiSurface gml:id="MultiSurface_ES.LOCAL.CP.'+str(ref)+'" srsName="http://www.opengis.net/def/crs/EPSG/0/'+str(epsg)+'">\n'
             z+='<gml:surfaceMember>\n'
-            z+='<gml:Surface gml:id="Surface_ES.SDGC.CP.'+str(ref)+'" srsName="http://www.opengis.net/def/crs/EPSG/0/'+str(epsg)+'">\n'
-            z+='<gml:patches>\n<gml:PolygonPatch>\n<gml:exterior>\n<gml:LinearRing>\n'
-            z+='<gml:posList srsDimension="2">'+str(punL)+'</gml:posList>\n'
-            z+='</gml:LinearRing>\n</gml:exterior>\n</gml:PolygonPatch>\n</gml:patches>\n</gml:Surface>\n</gml:surfaceMember>\n</gml:MultiSurface>\n</cp:geometry>\n'
-            z+='<cp:inspireId xmlns:base="http://inspire.ec.europa.eu/schemas/base/3.3">\n<base:Identifier>\n'
-            z+='<base:localId>'+str(num)+'</base:localId>\n<base:namespace>ES.LOCAL.CP</base:namespace>\n</base:Identifier>\n</cp:inspireId>\n'
+            z+='<gml:Surface gml:id="Surface_ES.LOCAL.CP.'+str(ref)+'" srsName="http://www.opengis.net/def/crs/EPSG/0/'+str(epsg)+'">\n'
+            z+='<gml:patches>\n<gml:PolygonPatch>'
+
+            ## COMENTARIO D.G. del Catastro: Debemos añadir los anillos interiores al GML para parcelas con huecos
+            z+= '\n<gml:exterior>\n<gml:LinearRing>\n'
+            z+='<gml:posList srsDimension="2">'+str(punL)+'</gml:posList>'
+            z+='\n</gml:LinearRing>\n</gml:exterior>'
+            if len(interior_rings) > 0:
+                for ring in interior_rings:
+                    [punN, punL] = self.get_points(ring)
+                    z+= '\n<gml:interior>\n<gml:LinearRing>\n'
+                    z+='<gml:posList srsDimension="2">'+str(punL)+'</gml:posList>\n'
+                    z+='</gml:LinearRing>\n</gml:interior>'
+            z+='\n</gml:PolygonPatch>\n</gml:patches>\n</gml:Surface>\n</gml:surfaceMember>\n</gml:MultiSurface>\n</cp:geometry>\n'
+            
+            z+='<cp:inspireId>\n<Identifier xmlns="http://inspire.ec.europa.eu/schemas/base/3.3">\n'
+            z+='<localId>'+str(num)+'</localId>\n<namespace>ES.LOCAL.CP</namespace>\n</Identifier>\n</cp:inspireId>\n'
             z+='<cp:label/>\n<cp:nationalCadastralReference/>\n</cp:CadastralParcel>\n'
-            z+='</wfs:member>\n'
+            z+='</member>\n'
 
         return z
 
@@ -314,7 +343,7 @@ class ParCatGML(QDialog):
         if v == 3:
             z = '</gml:FeatureCollection>\n'
         else:
-            z = '</wfs:FeatureCollection>\n'
+            z = '</FeatureCollection>\n'
 
         return z
 
@@ -347,30 +376,50 @@ class ParCatGML(QDialog):
         self.ui.Selec.item(fil, 5).setText(str(self.ui.area.value()))
 
 
-    def get_points(self, geom):
-        """ Get list of points of selected polygon """
+    def get_rings(self, geom):
+        """ Get list of rings of selected polygon """
 
-        list_points = []
+        exterior_ring = []
+        interior_rings = []
         wkb_type = geom.wkbType()
-        geom_type = geom.type()
         if wkb_type == QgsWkbTypes.Polygon:
             polygon = geom.asPolygon()
-            list_points = polygon[0]
+            exterior_ring = polygon[0]
 
         elif wkb_type == QgsWkbTypes.MultiPolygon:
             list_polygons = geom.asMultiPolygon()
             polygon = list_polygons[0]
-            list_points = polygon[0]
+            exterior_ring = polygon[0]
+            if len(polygon) > 1:
+                for index, ring in enumerate(polygon):
+                    if index > 0:
+                        interior_rings.append(ring)
 
-        return list_points
+        return [exterior_ring, interior_rings]
+
+    def get_points(self, ring):
+        """ Get list of points of selected ring """
+
+        punL = ""
+        punN = len(ring)
+        for point in ring:
+            if punL != "":
+                punL += " "
+            punL += str(format(point.x(), "f")) + " " + str(format(point.y(), "f"))
+
+        return [punN, punL]
 
 
     def validate_features_layer(self):
         """ Validate selected features of active layer """
 
         self.layer = self.iface.activeLayer()
+        self.isVectorLayer = (self.layer.type() == QgsMapLayer.VectorLayer)
         if not self.layer:
             self.show_message("C", "No hay ninguna capa activa")
+            return False
+        elif not self.isVectorLayer:
+            self.show_message("C", "La capa activa debe ser de tipo vectorial")
             return False
 
         self.elems = list(self.layer.selectedFeatures())
@@ -410,6 +459,10 @@ class ParCatGML(QDialog):
             nRef = "refcat"
         elif self.layer.fields().indexFromName("nationalCadastralReference") != -1:
             nRef = "nationalCadastralReference"
+        elif self.layer.fields().indexFromName("nationalCa") != -1:
+            nRef = "nationalCa"
+        elif self.layer.fields().indexFromName("localId") != -1:
+            nRef = "localId"
 
         nArea = ""
         if self.layer.fields().indexFromName("AREA") != -1:
@@ -428,7 +481,7 @@ class ParCatGML(QDialog):
             nPro = "delegacion"
         elif self.layer.fields().indexFromName("delegacio") != -1:
             nPro = "delegacio"
-        elif self.layer.id().startswith("A_ES_SDGC_CP_"):
+        elif self.layer.id().startswith("A_ES_LOCAL_CP_"):
             nPro = "id"
 
         nMun = ""
@@ -440,7 +493,7 @@ class ParCatGML(QDialog):
             nMun = "municipio"
         elif self.layer.fields().indexFromName("municipi") != -1:
             nMun = "municipi"
-        elif self.layer.id().startswith("A_ES_SDGC_CP_"):
+        elif self.layer.id().startswith("A_ES_LOCAL_CP_"):
             nMun = "id"
 
         # Load form list
@@ -465,17 +518,13 @@ class ParCatGML(QDialog):
         fil = -1
         for elem in self.elems:
             self.geo.append(elem.geometry())
-            num = "A"
+            num = string.ascii_uppercase[fil]
             ref = ""
-            area = 0
+            area = int(elem.geometry().area())
             pro = ""
             mun = ""
             if nRef != "":
                 ref = elem[nRef]
-            if nArea != "":
-                area = int(elem[nArea])
-            if area == 0:
-                area = int(elem.geometry().area())
             if nPro == "id":
                 pro = self.layer.id()[13:15]
             elif nPro != "":
@@ -495,6 +544,7 @@ class ParCatGML(QDialog):
             c = QTableWidgetItem(str(area))
             c.setTextAlignment(Qt.AlignRight)
             self.ui.Selec.setItem(fil, 5, c)
+            self.ui.Selec.item(fil, 5).setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
 
         self.ui.Selec.resizeRowsToContents()
         if self.ui.desti.text().strip() == "":
@@ -502,6 +552,6 @@ class ParCatGML(QDialog):
                 self.ui.desti.setText(self.project_dir)
             else:
                 self.ui.desti.setText(self.plugin_dir)
-        self.ui.Inspire3.setChecked(True)
+        self.ui.Inspire4.setChecked(True)
         self.show()
 
