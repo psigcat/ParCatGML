@@ -459,6 +459,10 @@ class ParCatGML(QDialog):
             nRef = "refcat"
         elif self.layer.fields().indexFromName("nationalCadastralReference") != -1:
             nRef = "nationalCadastralReference"
+        elif self.layer.fields().indexFromName("nationalCa") != -1:
+            nRef = "nationalCa"
+        elif self.layer.fields().indexFromName("localId") != -1:
+            nRef = "localId"
 
         nArea = ""
         if self.layer.fields().indexFromName("AREA") != -1:
@@ -540,6 +544,7 @@ class ParCatGML(QDialog):
             c = QTableWidgetItem(str(area))
             c.setTextAlignment(Qt.AlignRight)
             self.ui.Selec.setItem(fil, 5, c)
+            self.ui.Selec.item(fil, 5).setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
 
         self.ui.Selec.resizeRowsToContents()
         if self.ui.desti.text().strip() == "":
