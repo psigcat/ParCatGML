@@ -2,7 +2,7 @@
 from PyQt5.QtCore import Qt, QCoreApplication, QDateTime
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QDialog, QAction, QMessageBox, QFileDialog, QTableWidgetItem, QFrame
-from qgis.core import QgsProject, QgsPointXY, QgsWkbTypes, QgsGeometry
+from qgis.core import QgsProject, QgsPointXY, QgsWkbTypes, QgsGeometry, QgsMapLayer
 
 import os
 import sys
@@ -371,6 +371,10 @@ class ParCatGML(QDialog):
         self.layer = self.iface.activeLayer()
         if not self.layer:
             self.show_message("C", "No hay ninguna capa activa")
+            return False
+
+        if self.layer.type() != QgsMapLayer.VectorLayer:
+            self.show_message("C", "La capa seleccionada tiene que ser vectorial")
             return False
 
         self.elems = list(self.layer.selectedFeatures())
