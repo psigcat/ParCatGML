@@ -4,7 +4,7 @@ name=ParCatGML
 #################### Description
 description=Creation of GML file to validate cadastral parcel. (ES) Creación de fichero GML para validar parcela catastral 
 qgisMinimumVersion=3.0
-version=1.4
+version=1.5
 
 #################### Authors
 author=Pep Vallory, David Erill, Carlos Lopez Quintanilla
@@ -24,3 +24,7 @@ category=Plugins
 icon=ParCatGML.png
 experimental=False
 deprecated=False
+
+#################### Changelog:
+changelog=
+	1.5 - modify v4 GML as catastro now is more restrictive: remove wfs prefix from FeatureCollection and member, FeatureCollection header namespaces, add beginLifespanVersion and endLifespanVersion, fix #6
