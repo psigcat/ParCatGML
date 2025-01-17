@@ -7,7 +7,7 @@ qgisMinimumVersion=3.0
 version=1.5
 
 #################### Authors
-author=Pep Vallory, David Erill, Carlos Lopez Quintanilla
+author=Gerald Kogler, Pep Vallory, David Erill, Carlos Lopez Quintanilla
 email=carlos.lopez@psig.es
 homepage=https://github.com/psigcat/ParCatGML
 
