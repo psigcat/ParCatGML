@@ -224,24 +224,20 @@ class ParCatGML(QDialog):
             z='<?xml version="1.0" encoding="utf-8"?>\n'
             z+='<!-- Archivo generado automaticamente por el plugin ParCatGML de QGIS. -->\n'
             z+='<!-- Parcela Catastral para entregar a la D.G. del Catastro. Formato INSPIRE v4. -->\n'
-            z+='<wfs:FeatureCollection '
-            z+='gml:id="ES.SDGC.CP" '
-            z+='xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
-            z+='xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
-            z+='xmlns:xlink="http://www.w3.org/1999/xlink" '
-            z+='xmlns:gml="http://www.opengis.net/gml/3.2" '
-            z+='xmins:gco="http://www.isotc211.org/2005/gco" '
-            z+='xmlns:ogc="http://www.opengis.net/ogc" ' #v3
-            z+='xmlns:cp="http://inspire.ec.europa.eu/schemas/cp/4.0" '
-            z+='xmlns:gmd="http://www.isotc211.org/2005/gmd" '
-            z+='xsi:schemaLocation="http://www.opengis.net/wfs/2.0'
-            z+=' http://schemas.opengis.net/wfs/2.0/wfs.xsd'
-            z+=' http://inspire.ec.europa.eu/schemas/cp/4.0'
-            z+=' http://inspire.ec.europa.eu/schemas/cp/4.0/CadastralParcels.xsd" '
-            z+='xmins:wfs="http://www.opengis.net/wfs/2.0" '
+            z+='<FeatureCollection\n'
+            z+='xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n'
+            z+='xmlns:gml="http://www.opengis.net/gml/3.2"\n'
+            z+='xmlns:xlink="http://www.w3.org/1999/xlink"\n'
+            z+='xmlns:cp="http://inspire.ec.europa.eu/schemas/cp/4.0"\n'
+            z+='xmlns:gmd="http://www.isotc211.org/2005/gmd"\n'
+            z+='xsi:schemaLocation="http://www.opengis.net/wfs/2.0 '
+            z+='http://schemas.opengis.net/wfs/2.0/wfs.xsd '
+            z+='http://inspire.ec.europa.eu/schemas/cp/4.0 '
+            z+='http://inspire.ec.europa.eu/schemas/cp/4.0/CadastralParcels.xsd"\n'
+            z+='xmlns="http://www.opengis.net/wfs/2.0"\n'
             z+='timeStamp="'+self.ui.data.dateTime().toString(Qt.ISODate)+'" '
             z+='numberMatched="1" '
-            z+='numberReturned="1"> '
+            z+='numberReturned="1">\n'
 
         return z
 
@@ -290,20 +286,22 @@ class ParCatGML(QDialog):
             z+='<gml:pos>'+str(centroid)+'</gml:pos>\n</gml:Point>\n</cp:referencePoint>\n<cp:validFrom xsi:nil="true" nilReason="unknown" />\n'
             z+='<cp:validTo xsi:nil="true" nilReason="unknown" />\n</cp:CadastralZoning>\n</gml:featureMember>\n'
         else:
-            z='<wfs:member>\n'
+            z='<member>\n'
             z+='<cp:CadastralParcel gml:id="ES.SDGC.CP.'+str(ref)+'">\n'
             z+='<cp:areaValue uom="m2">'+str(area)+'</cp:areaValue>\n'
+            z+='<cp:beginLifespanVersion xsi:nil="true" nilReason="http://inspire.ec.europa.eu/codelist/VoidReasonValue/Unpopulated"></cp:beginLifespanVersion>\n'
+            z+='<cp:endLifespanVersion xsi:nil="true" nilReason="http://inspire.ec.europa.eu/codelist/VoidReasonValue/Unpopulated"></cp:endLifespanVersion>\n'
             z+='<cp:geometry>\n'
             z+='<gml:MultiSurface gml:id="MultiSurface_ES.SDGC.CP.'+str(ref)+'" srsName="http://www.opengis.net/def/crs/EPSG/0/'+str(epsg)+'">\n'
             z+='<gml:surfaceMember>\n'
             z+='<gml:Surface gml:id="Surface_ES.SDGC.CP.'+str(ref)+'" srsName="http://www.opengis.net/def/crs/EPSG/0/'+str(epsg)+'">\n'
             z+='<gml:patches>\n<gml:PolygonPatch>\n<gml:exterior>\n<gml:LinearRing>\n'
-            z+='<gml:posList srsDimension="2">'+str(punL)+'</gml:posList>\n'
+            z+='<gml:posList srsDimension="2" count="'+str(punN)+'">'+str(punL)+'</gml:posList>\n'
             z+='</gml:LinearRing>\n</gml:exterior>\n</gml:PolygonPatch>\n</gml:patches>\n</gml:Surface>\n</gml:surfaceMember>\n</gml:MultiSurface>\n</cp:geometry>\n'
             z+='<cp:inspireId xmlns:base="http://inspire.ec.europa.eu/schemas/base/3.3">\n<base:Identifier>\n'
             z+='<base:localId>'+str(num)+'</base:localId>\n<base:namespace>ES.LOCAL.CP</base:namespace>\n</base:Identifier>\n</cp:inspireId>\n'
             z+='<cp:label/>\n<cp:nationalCadastralReference/>\n</cp:CadastralParcel>\n'
-            z+='</wfs:member>\n'
+            z+='</member>\n'
 
         return z
 
@@ -314,7 +312,7 @@ class ParCatGML(QDialog):
         if v == 3:
             z = '</gml:FeatureCollection>\n'
         else:
-            z = '</wfs:FeatureCollection>\n'
+            z = '</FeatureCollection>\n'
 
         return z
 
@@ -506,6 +504,6 @@ class ParCatGML(QDialog):
                 self.ui.desti.setText(self.project_dir)
             else:
                 self.ui.desti.setText(self.plugin_dir)
-        self.ui.Inspire3.setChecked(True)
+        self.ui.Inspire4.setChecked(True)
         self.show()
 
