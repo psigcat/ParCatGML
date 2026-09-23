@@ -4,7 +4,8 @@ name=ParCatGML
 #################### Description
 description=Creation of GML file to validate cadastral parcel. (ES) Creación de fichero GML para validar parcela catastral 
 qgisMinimumVersion=3.0
-version=1.5
+qgisMaximumVersion=4.99
+version=1.7
 
 #################### Authors
 author=Gerald Kogler, Pep Vallory, David Erill, Carlos Lopez Quintanilla
@@ -27,4 +28,12 @@ deprecated=False
 
 #################### Changelog:
 changelog=
+	1.7		Migración a Qt6/QGIS4 manteniendo compatibilidad Qt5/QGIS3
+			Imports corregidos a qgis.PyQt (rotos en QGIS4)
+			QAction con fallback QtWidgets/QtGui
+			Enums Qt y PyQGIS totalmente cualificados
+			.exec_() → .exec()
+			Fix: crash si el campo de área viene vacío (NULL) en la capa
+			metadata.txt: versión 1.6, qgisMaximumVersion=4.99
+	1.6 - migrate plugin to be compatible with Qt6/QGIS4 while keeping Qt5/QGIS3 support (qualified enums, qgis.PyQt imports, exec())
 	1.5 - modify v4 GML as catastro now is more restrictive: remove wfs prefix from FeatureCollection and member, FeatureCollection header namespaces, add beginLifespanVersion and endLifespanVersion, fix #6

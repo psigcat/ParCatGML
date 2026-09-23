@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtCore import Qt, QCoreApplication, QDateTime
-from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtWidgets import QDialog, QAction, QMessageBox, QFileDialog, QTableWidgetItem, QFrame
+from qgis.PyQt.QtCore import Qt, QCoreApplication, QDateTime
+from qgis.PyQt.QtGui import QIcon, QPixmap
+from qgis.PyQt.QtWidgets import QDialog, QMessageBox, QFileDialog, QTableWidgetItem, QFrame
+try:
+    from qgis.PyQt.QtWidgets import QAction
+except ImportError:
+    from qgis.PyQt.QtGui import QAction
 from qgis.core import QgsProject, QgsPointXY, QgsWkbTypes, QgsGeometry, QgsMapLayer
 
 import os
@@ -109,28 +113,28 @@ class ParCatGML(QDialog):
         m = QMessageBox()
         m.setText(self.tr(t))
         if av == "P":
-            m.setIcon(QMessageBox.Information)
+            m.setIcon(QMessageBox.Icon.Information)
             m.setWindowTitle("Pregunta")
-            m.setStandardButtons(QMessageBox.Ok | QMessageBox.No)
-            b1 = m.button(QMessageBox.Ok)
+            m.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.No)
+            b1 = m.button(QMessageBox.StandardButton.Ok)
             b1.setText("Si")
-            b2 = m.button(QMessageBox.No)
+            b2 = m.button(QMessageBox.StandardButton.No)
             b2.setText("No")
         else:
             if av == "W":
-                m.setIcon(QMessageBox.Warning)
+                m.setIcon(QMessageBox.Icon.Warning)
                 z = "Atención"
             elif av == "C":
-                m.setIcon(QMessageBox.Critical)
+                m.setIcon(QMessageBox.Icon.Critical)
                 z = "Error"
             else:
-                m.setIcon(QMessageBox.Information)
+                m.setIcon(QMessageBox.Icon.Information)
             m.setWindowTitle("Aviso")
-            m.setStandardButtons(QMessageBox.Ok)
-            b = m.button(QMessageBox.Ok)
+            m.setStandardButtons(QMessageBox.StandardButton.Ok)
+            b = m.button(QMessageBox.StandardButton.Ok)
             b.setText("Seguir")
 
-        return m.exec_()
+        return m.exec()
 
 
     def change_project(self):
@@ -143,7 +147,7 @@ class ParCatGML(QDialog):
         """ Select destination folder """
 
         msg = "Selección carpeta destino"
-        z = QFileDialog.getExistingDirectory(None, msg, self.ui.desti.text(), QFileDialog.ShowDirsOnly)
+        z = QFileDialog.getExistingDirectory(None, msg, self.ui.desti.text(), QFileDialog.Option.ShowDirsOnly)
         if z.strip() != "":
             self.ui.desti.setText(self.manage_slash(z))
 
@@ -163,7 +167,7 @@ class ParCatGML(QDialog):
         f = self.manage_slash(self.ui.desti.text() + "/" + filename + ".gml")
         if os.path.exists(f):
             msg = "El fichero " + filename + ".gml ya existe\n\n¿Desea reemplazarlo?"
-            if self.show_message("P", msg) == QMessageBox.No:
+            if self.show_message("P", msg) == QMessageBox.StandardButton.No:
                 return
 
         z = self.header_gml(iv)
@@ -235,7 +239,7 @@ class ParCatGML(QDialog):
             z+='http://inspire.ec.europa.eu/schemas/cp/4.0 '
             z+='http://inspire.ec.europa.eu/schemas/cp/4.0/CadastralParcels.xsd"\n'
             z+='xmlns="http://www.opengis.net/wfs/2.0"\n'
-            z+='timeStamp="'+self.ui.data.dateTime().toString(Qt.ISODate)+'" '
+            z+='timeStamp="'+self.ui.data.dateTime().toString(Qt.DateFormat.ISODate)+'" '
             z+='numberMatched="1" '
             z+='numberReturned="1">\n'
 
@@ -250,7 +254,7 @@ class ParCatGML(QDialog):
             z+='<gml:Envelope srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'">\n'
             z+='<gml:lowerCorner>'+str(min)+'</gml:lowerCorner>\n<gml:upperCorner>'+str(max)+'</gml:upperCorner>\n'
             z+='</gml:Envelope>\n</gml:boundedBy>\n<cp:areaValue uom="m2">'+str(area)+'</cp:areaValue>\n'
-            z+='<cp:beginLifespanVersion>'+self.ui.data.dateTime().toString(Qt.ISODate)+'</cp:beginLifespanVersion>\n'
+            z+='<cp:beginLifespanVersion>'+self.ui.data.dateTime().toString(Qt.DateFormat.ISODate)+'</cp:beginLifespanVersion>\n'
             z+='<cp:endLifespanVersion xsi:nil="true" nilReason="other:unpopulated"></cp:endLifespanVersion>\n<cp:geometry>\n'
             z+='<gml:MultiSurface gml:id="MultiSurface_ES.SDGC.CP.'+str(ref)+'" srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'">\n<gml:surfaceMember>\n'
             z+='<gml:Surface gml:id="Surface_ES.SDGC.CP.'+str(ref)+'.1" srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'">\n'
@@ -267,7 +271,7 @@ class ParCatGML(QDialog):
             z+='<cp:zoning xlink:href="#ES.SDGC.CP.Z.'+str(promun)+'U"></cp:zoning>\n</cp:CadastralParcel>\n</gml:featureMember>\n<gml:featureMember>\n'
             z+='<cp:CadastralZoning gml:id="ES.SDGC.CP.Z.'+str(promun)+'U">\n<gml:boundedBy>\n<gml:Envelope srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'">\n'
             z+='<gml:lowerCorner>'+str(min)+'</gml:lowerCorner>\n<gml:upperCorner>'+str(max)+'</gml:upperCorner>\n</gml:Envelope>\n</gml:boundedBy>\n'
-            z+='<cp:beginLifespanVersion>'+self.ui.data.dateTime().toString(Qt.ISODate)+'</cp:beginLifespanVersion>\n'
+            z+='<cp:beginLifespanVersion>'+self.ui.data.dateTime().toString(Qt.DateFormat.ISODate)+'</cp:beginLifespanVersion>\n'
             z+='<cp:endLifespanVersion xsi:nil="true" nilReason="other:unpopulated"></cp:endLifespanVersion>\n'
             z+='<cp:estimatedAccuracy uom="m">0.60</cp:estimatedAccuracy>\n<cp:geometry>\n'
             z+='<gml:MultiSurface gml:id="MultiSurface_ES.SDGC.CP.Z.'+str(promun)+'U" srsName="urn:ogc:def:crs:EPSG::'+str(epsg)+'">\n<gml:surfaceMember>\n'
@@ -351,11 +355,11 @@ class ParCatGML(QDialog):
         list_points = []
         wkb_type = geom.wkbType()
         geom_type = geom.type()
-        if wkb_type == QgsWkbTypes.Polygon:
+        if wkb_type == QgsWkbTypes.Type.Polygon:
             polygon = geom.asPolygon()
             list_points = polygon[0]
 
-        elif wkb_type == QgsWkbTypes.MultiPolygon:
+        elif wkb_type == QgsWkbTypes.Type.MultiPolygon:
             list_polygons = geom.asMultiPolygon()
             polygon = list_polygons[0]
             list_points = polygon[0]
@@ -371,7 +375,7 @@ class ParCatGML(QDialog):
             self.show_message("C", "No hay ninguna capa activa")
             return False
 
-        if self.layer.type() != QgsMapLayer.VectorLayer:
+        if self.layer.type() != QgsMapLayer.LayerType.VectorLayer:
             self.show_message("C", "La capa seleccionada tiene que ser vectorial")
             return False
 
@@ -390,7 +394,7 @@ class ParCatGML(QDialog):
         features = self.layer.selectedFeatures()
         for feature in features:
             geom = feature.geometry()
-            if geom.type() != QgsWkbTypes.PolygonGeometry:
+            if geom.type() != QgsWkbTypes.GeometryType.PolygonGeometry:
                 msg = "La capa seleccionada no es de tipo polígono"
                 self.show_message("W", msg)
                 return False
@@ -460,7 +464,7 @@ class ParCatGML(QDialog):
             self.ui.Selec.setColumnWidth(col, int(str("20,120,25,35,60,60").split(",")[col]))
 
         self.ui.Selec.setHorizontalHeaderLabels(["S", "RefCat", "Pr.", "Mun.", "NumPar", "Area"])
-        self.ui.Selec.horizontalHeader().setFrameStyle(QFrame.Box | QFrame.Plain)
+        self.ui.Selec.horizontalHeader().setFrameStyle(QFrame.Shape.Box | QFrame.Shadow.Plain)
         self.ui.Selec.horizontalHeader().setLineWidth(1)
 
         self.geo = []
@@ -474,7 +478,7 @@ class ParCatGML(QDialog):
             mun = ""
             if nRef != "":
                 ref = elem[nRef]
-            if nArea != "":
+            if nArea != "" and elem[nArea] is not None:
                 area = int(elem[nArea])
             if area == 0:
                 area = int(elem.geometry().area())
@@ -495,7 +499,7 @@ class ParCatGML(QDialog):
             self.ui.Selec.setItem(fil, 3, QTableWidgetItem(str(mun)))
             self.ui.Selec.setItem(fil, 4, QTableWidgetItem(str(num)))
             c = QTableWidgetItem(str(area))
-            c.setTextAlignment(Qt.AlignRight)
+            c.setTextAlignment(Qt.AlignmentFlag.AlignRight)
             self.ui.Selec.setItem(fil, 5, c)
 
         self.ui.Selec.resizeRowsToContents()
